@@ -1,0 +1,33 @@
+name: Restrict PR Changes
+
+on:
+  pull_request:
+    branches: [ main, master ] # Change this if your default branch has a different name
+
+jobs:
+  check-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history so we can compare branches
+
+      - name: Check changed files
+        id: files
+        run: |
+          # Get list of changed files compared to the target branch
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          
+          echo "Files changed in this PR:"
+          echo "$CHANGED_FILES"
+          
+          # Loop through each file to ensure it starts with the allowed folder
+          for file in $CHANGED_FILES; do
+            if [[ ! "$file" =~ ^suggestions/ ]]; then
+              echo "::error file=$file::Error: You are only allowed to modify files inside the 'suggestions/' folder."
+              exit 1
+            fi
+          done
+          
+          echo "All changes valid"
